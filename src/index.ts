@@ -303,7 +303,12 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
   if (method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
 
   if (path === '/api/health') {
-    return json({ ok: true, service: 'soft-dist', time: new Date().toISOString() });
+    return json({
+      ok: true,
+      service: 'soft-dist',
+      tokenConfigured: Boolean(env.ADMIN_TOKEN),
+      time: new Date().toISOString(),
+    });
   }
 
   // 客户端读取接口（公开，只返回已启用的软件）
