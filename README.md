@@ -159,8 +159,11 @@ schtasks /create /tn "SoftDist" /tr "powershell -ExecutionPolicy Bypass -File C:
 | 现象 | 原因 |
 | --- | --- |
 | 登录报 401 | `ADMIN_TOKEN` 未设置或输入不一致，重新 `wrangler secret put ADMIN_TOKEN` 并 redeploy |
+| 数据库绑定为D1 | DB-softdist |
 | 接口 500「数据库尚未初始化」 | 未执行 `npm run db:remote` |
 | 客户端一直重复安装 | 软件名称与「程序和功能」显示名不一致，改成精确名称或其前缀 |
 | exe 安装失败并提示未配置静默参数 | 在后台补上该 exe 的静默参数 |
 | 装到 C:\APP 时报拒绝访问 | 该目录需要管理员权限，请以管理员身份运行客户端 |
 | 中文乱码 | 客户端脚本已保存为 UTF-8 with BOM，请勿用会去掉 BOM 的编辑器另存 |
+
+
