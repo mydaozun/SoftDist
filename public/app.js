@@ -164,7 +164,8 @@
             <div class="meta-row"><b>校验</b><span title="${escapeHtml(app.sha256 || '未设置')}">${escapeHtml(sha)}</span></div>
           </div>
           <div class="card-foot">
-            <span class="pill ${app.enabled ? 'pill-on' : 'pill-off'}">${app.enabled ? '已启用' : '已停用'}</span>
+            <button class="pill ${app.enabled ? 'pill-on' : 'pill-off'}" type="button" data-action="toggle" data-id="${app.id}"
+              aria-pressed="${app.enabled}" title="${app.enabled ? '点击停用' : '点击启用'}">${app.enabled ? '已启用' : '已停用'}</button>
             <div class="card-actions">
               <button class="btn btn-ghost" type="button" data-action="edit" data-id="${app.id}">编辑</button>
               <button class="btn btn-ghost btn-danger" type="button" data-action="delete" data-id="${app.id}">删除</button>
@@ -263,6 +264,24 @@
     }
   }
 
+  async function toggleApp(id, btn) {
+    const app = apps.find((item) => item.id === id);
+    if (!app) return;
+
+    btn.disabled = true;
+    try {
+      await api(`/api/admin/apps/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ enabled: !app.enabled }),
+      });
+      toast(app.enabled ? `已停用「${app.name}」` : `已启用「${app.name}」`);
+      await loadApps();
+    } catch (error) {
+      btn.disabled = false;
+      toast(error.message, true);
+    }
+  }
+
   /* ---------- 事件绑定 ---------- */
 
   $('login-form').addEventListener('submit', (event) => {
@@ -294,6 +313,8 @@
       if (app) openModal(app);
     } else if (btn.dataset.action === 'delete') {
       deleteApp(id);
+    } else if (btn.dataset.action === 'toggle') {
+      toggleApp(id, btn);
     }
   });
 
