@@ -307,6 +307,8 @@ async function route(request: Request, env: Env, url: URL): Promise<Response> {
       ok: true,
       service: 'soft-dist',
       tokenConfigured: Boolean(env.ADMIN_TOKEN),
+      envKeys: Object.keys(env).sort(),
+      tokenLength: (env.ADMIN_TOKEN ?? '').length,
       time: new Date().toISOString(),
     });
   }
