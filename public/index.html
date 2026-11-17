@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>SoftDist · 软件分发控制台</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="aurora" aria-hidden="true">
+  <span class="blob blob-a"></span>
+  <span class="blob blob-b"></span>
+  <span class="blob blob-c"></span>
+</div>
+
+<!-- 登录 -->
+<main id="login-view" class="login-wrap">
+  <section class="glass login-card">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z" />
+          <path d="M12 12v9M4 7.5 12 12l8-4.5" />
+        </svg>
+      </div>
+      <div>
+        <h1>SoftDist</h1>
+        <p>软件分发控制台</p>
+      </div>
+    </div>
+
+    <form id="login-form" autocomplete="off">
+      <label class="field">
+        <span>管理员 Token</span>
+        <input id="token-input" type="password" name="token" placeholder="ADMIN_TOKEN" autocomplete="current-password" />
+      </label>
+      <p id="login-error" class="form-error" hidden></p>
+      <button id="login-btn" class="btn btn-primary btn-block" type="submit">
+        <span>进入控制台</span>
+      </button>
+    </form>
+
+    <p class="hint">Token 由 <code>wrangler secret put ADMIN_TOKEN</code> 配置，仅保存在当前浏览器标签页会话中。</p>
+  </section>
+</main>
+
+<!-- 控制台 -->
+<main id="app-view" class="app-wrap" hidden>
+  <header class="glass topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z" />
+          <path d="M12 12v9M4 7.5 12 12l8-4.5" />
+        </svg>
+      </div>
+      <div>
+        <h1>SoftDist</h1>
+        <p id="stat-line">加载中…</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="refresh-btn" class="btn btn-ghost" type="button" title="刷新列表">刷新</button>
+      <button id="add-btn" class="btn btn-primary" type="button">+ 新增软件</button>
+      <button id="logout-btn" class="btn btn-ghost btn-danger" type="button">退出</button>
+    </div>
+  </header>
+
+  <section class="glass client-panel">
+    <div class="client-copy">
+      <h2>客户端静默安装</h2>
+      <p>在目标 Windows 机器上以管理员身份执行下面的命令，客户端会读取本库并安装缺失或版本过旧的软件。</p>
+    </div>
+    <div class="client-cmd">
+      <code id="client-command">powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "…"</code>
+      <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
+    </div>
+  </section>
+
+  <section id="grid" class="app-grid" aria-live="polite"></section>
+
+  <section id="empty" class="glass empty-state" hidden>
+    <h2>还没有软件</h2>
+    <p>点击「新增软件」把软件名称和下载链接写入数据库。</p>
+  </section>
+</main>
+
+<!-- 编辑弹窗 -->
+<div id="modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close="true"></div>
+  <div class="glass modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <header class="modal-head">
+      <h2 id="modal-title">新增软件</h2>
+      <button id="modal-close" class="icon-btn" type="button" aria-label="关闭">×</button>
+    </header>
+
+    <form id="app-form" class="modal-body" autocomplete="off">
+      <div class="row-2">
+        <label class="field">
+          <span>软件名称 *</span>
+          <input id="f-name" type="text" maxlength="100" required placeholder="例如 7-Zip" />
+        </label>
+        <label class="field">
+          <span>版本号</span>
+          <input id="f-version" type="text" maxlength="50" placeholder="例如 24.08" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span>下载链接 *</span>
+        <input id="f-url" type="text" maxlength="2000" required placeholder="https://… 或 \\fileserver\share\app.exe" />
+      </label>
+
+      <label class="field">
+        <span>描述</span>
+        <input id="f-desc" type="text" maxlength="500" placeholder="可选，展示于卡片和客户端日志" />
+      </label>
+
+      <div class="row-2">
+        <label class="field">
+          <span>安装类型</span>
+          <select id="f-type">
+            <option value="auto">auto（按扩展名推断）</option>
+            <option value="msi">msi（msiexec /qn）</option>
+            <option value="exe">exe（自定义静默参数）</option>
+            <option value="ps1">ps1（PowerShell 脚本）</option>
+            <option value="msix">msix（Add-AppxPackage）</option>
+            <option value="zip">zip（仅解压）</option>
+            <option value="none">none（仅下载不安装）</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>静默参数</span>
+          <input id="f-args" type="text" maxlength="500" placeholder="exe 必填，如 /S 或 /VERYSILENT /NORESTART" />
+        </label>
+      </div>
+
+      <label class="field">
+        <span>SHA256 校验值</span>
+        <input id="f-sha" type="text" maxlength="64" spellcheck="false" placeholder="可选，64 位十六进制，用于下载完整性校验" />
+      </label>
+
+      <label class="switch-row">
+        <input id="f-enabled" type="checkbox" checked />
+        <span>启用（客户端可见）</span>
+      </label>
+
+      <p id="form-error" class="form-error" hidden></p>
+
+      <footer class="modal-foot">
+        <button id="cancel-btn" class="btn btn-ghost" type="button">取消</button>
+        <button id="save-btn" class="btn btn-primary" type="submit">保存</button>
+      </footer>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

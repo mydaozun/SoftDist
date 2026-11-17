@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "soft-dist",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-10-01",
+  // 静态前端：public 目录直接由 Workers Assets 托管
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  // D1 数据库：执行 `npx wrangler d1 create soft-dist` 后把返回的 database_id 填到这里
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "soft-dist",
+      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

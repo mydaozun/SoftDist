@@ -1,0 +1,18 @@
+{
+  "name": "soft-dist",
+  "version": "1.0.0",
+  "private": true,
+  "description": "基于 Cloudflare Workers + D1 的软件分发系统",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:local": "wrangler d1 migrations apply soft-dist --local",
+    "db:remote": "wrangler d1 migrations apply soft-dist --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261116.1",
+    "typescript": "^5.6.3",
+    "wrangler": "^4.163.0"
+  }
+}
