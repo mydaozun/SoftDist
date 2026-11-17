@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>SoftDist · 软件下载</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="aurora" aria-hidden="true">
+  <span class="blob blob-a"></span>
+  <span class="blob blob-b"></span>
+  <span class="blob blob-c"></span>
+</div>
+
+<main class="app-wrap user-wrap">
+  <header class="glass topbar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z" />
+          <path d="M12 12v9M4 7.5 12 12l8-4.5" />
+          <path d="M12 12v5" />
+        </svg>
+      </div>
+      <div>
+        <h1>SoftDist</h1>
+        <p id="user-stat">加载中…</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="pill pill-readonly">只读</span>
+      <button id="select-all" class="btn btn-ghost" type="button">全选</button>
+      <button id="select-none" class="btn btn-ghost" type="button">清空</button>
+      <a class="btn btn-ghost" href="/">管理后台</a>
+    </div>
+  </header>
+
+  <section id="grid" class="app-grid" aria-live="polite"></section>
+
+  <section id="empty" class="glass empty-state" hidden>
+    <h2>暂无可下载的软件</h2>
+    <p>管理员在控制台添加并启用软件后，这里就会出现。</p>
+  </section>
+
+  <section class="glass client-panel pick-bar">
+    <div class="client-copy">
+      <h2 id="pick-title">加载中…</h2>
+      <p id="pick-hint">勾选需要的软件即可生成对应的安装命令；未勾选时命令会安装全部已启用软件。</p>
+    </div>
+    <div class="client-cmd">
+      <code id="user-command">powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "…"</code>
+      <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="/clipboard.js"></script>
+<script src="/user.js"></script>
+</body>
+</html>

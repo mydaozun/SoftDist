@@ -280,6 +280,7 @@ select:focus {
   border: 1px solid transparent;
   cursor: pointer;
   white-space: nowrap;
+  text-decoration: none;
   transition: transform 0.15s, background 0.18s, border-color 0.18s, opacity 0.18s;
 }
 
@@ -639,6 +640,72 @@ button.pill:disabled {
   justify-content: flex-end;
   gap: 10px;
   padding-top: 6px;
+}
+
+/* 用户下载页 */
+.user-wrap {
+  padding-bottom: 28px;
+}
+
+.link-inline {
+  display: inline-block;
+  margin-top: 14px;
+  padding-bottom: 1px;
+  color: rgba(160, 190, 255, 0.95);
+  font-size: 12.5px;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(91, 140, 255, 0.35);
+  transition: color 0.18s, border-color 0.18s;
+}
+
+.link-inline:hover {
+  color: #fff;
+  border-color: rgba(91, 140, 255, 0.8);
+}
+
+.pill-readonly {
+  align-self: center;
+  padding: 3px 10px;
+  color: rgba(180, 210, 255, 0.9);
+  background: rgba(91, 140, 255, 0.14);
+  border-color: rgba(91, 140, 255, 0.32);
+}
+
+.pick-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+.pick-card:hover {
+  transform: translateY(-2px);
+}
+
+.pick-card.is-picked {
+  border-color: rgba(91, 140, 255, 0.62);
+  box-shadow: 0 0 0 1px rgba(91, 140, 255, 0.32), 0 26px 60px -30px rgba(91, 140, 255, 0.85),
+    inset 0 1px 0 var(--glass-highlight);
+}
+
+.pick-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.pick-name input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.pick-bar {
+  position: sticky;
+  bottom: 14px;
+  z-index: 6;
 }
 
 /* Toast */

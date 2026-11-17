@@ -5,8 +5,9 @@
 ```
         ┌────────────────────────────┐
         │  Cloudflare Worker         │
- 浏览器  │  ├─ /             静态前端  │  ← Workers Assets（public/）
- ──────▶ │  ├─ /api/apps     公开读   │  ← D1
+ 浏览器  │  ├─ /             管理前端  │  ← Workers Assets（public/）
+ ──────▶ │  ├─ /user.html    只读用户页│  ← 勾选软件生成安装命令
+        │  ├─ /api/apps     公开读   │  ← D1
         │  └─ /api/admin/*  鉴权写   │
         └──────────┬─────────────────┘
                    │
@@ -25,7 +26,7 @@
 | 路径 | 说明 |
 | --- | --- |
 | `src/index.ts` | Worker：路由、鉴权、校验、D1 CRUD |
-| `public/` | 管理前端（登录 + 卡片列表 + 新增/编辑/删除） |
+| `public/` | 前端：`index.html` 管理台（登录 + 卡片列表 + 新增/编辑/删除）、`user.html` 只读用户下载页 |
 | `migrations/0001_init.sql` | D1 建表脚本 |
 | `client/Install-Agent.ps1` | Windows 静默安装客户端 |
 | `wrangler.jsonc` | Worker / 静态资源 / D1 绑定配置 |
@@ -69,6 +70,7 @@ npm run dev                      # http://127.0.0.1:8787
    - **下载链接**：`https://…`、`\\fileserver\share\app.exe` 或 `C:\pkg\app.exe`。
    - **安装类型**：`msi` / `exe` / `ps1` / `msix` / `zip` / `none` / `auto`（按扩展名推断）。
    - **静默参数**：exe 必填（客户端不会盲目猜测）。
+   - **安装目录**：留空则安装到 `C:\APP\<软件名>`；也可填 `D:\Tools\Foo` 等绝对路径。
    - **SHA256**：可选，填了客户端就会校验，防止下载被篡改。
 3. 「启用」开关控制客户端是否可见，停用即下线该软件。
 
@@ -107,6 +109,7 @@ powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "https://so
 | `-Server` | 必填 | 服务地址 |
 | `-App` | 全部 | 按名称过滤，支持通配符 |
 | `-DownloadDir` | `%ProgramData%\SoftDist\cache` | 安装包缓存目录 |
+| `-InstallRoot` | `C:\APP` | 未单独配置安装目录时的默认根目录 |
 | `-LogPath` | `%ProgramData%\SoftDist\install.log` | 日志文件 |
 | `-Force` | 关 | 忽略版本比对强制重装 |
 | `-DryRun` | 关 | 只打印计划动作 |
@@ -117,12 +120,21 @@ powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "https://so
 
 | 类型 | 实际命令 |
 | --- | --- |
-| msi | `msiexec /i <包> /qn /norestart <静默参数>` |
-| exe | `<包> <静默参数>` |
+| msi | `msiexec /i <包> /qn /norestart INSTALLDIR="<安装目录>" <静默参数>` |
+| exe | `<包> <静默参数> /D=<安装目录>` |
 | ps1 | `powershell -NoProfile -ExecutionPolicy Bypass -File <包> <静默参数>` |
 | msix | `Add-AppxPackage -Path <包>` |
-| zip | 解压到 `%ProgramData%\SoftDist\packages\<名称>`，不执行安装 |
+| zip | 解压到 `<安装目录>`，不执行安装 |
 | none | 只下载不安装 |
+
+安装目录规则：数据库里填了就优先用；没填则用 `-InstallRoot` 默认值拼软件名，即 `C:\APP\<软件名>`（非法文件名字符会替换为 `_`）。客户端会在安装前自动创建该目录。
+
+不同安装器认的目录参数不同，客户端按类型自动拼接，但都可被「静默参数」覆盖：
+
+- **MSI**：默认追加 `INSTALLDIR="..."`。若该 MSI 用的是 `APPLICATIONFOLDER`、`TARGETDIR` 等属性，直接在静默参数里写 `APPLICATIONFOLDER="D:\Foo"`，客户端检测到后不再追加。
+- **NSIS exe**：默认在末尾追加 `/D=<目录>`（NSIS 要求 `/D=` 必须最后且不能带引号）。
+- **Inno Setup exe**：把 `/DIR="D:\Foo"` 写进静默参数（客户端检测到 `/DIR=` 或 `/D=` 后不再追加）。
+- **msix**：系统托管安装位置，目录参数不生效。
 
 常见静默参数：NSIS ` /S`，Inno Setup `/VERYSILENT /NORESTART`，InstallShield `/s /v"/qn"`，MSI 已内置 `/qn`。成功退出码：`0`、`3010`、`1641`（后两者表示需重启）。
 
@@ -150,4 +162,5 @@ schtasks /create /tn "SoftDist" /tr "powershell -ExecutionPolicy Bypass -File C:
 | 接口 500「数据库尚未初始化」 | 未执行 `npm run db:remote` |
 | 客户端一直重复安装 | 软件名称与「程序和功能」显示名不一致，改成精确名称或其前缀 |
 | exe 安装失败并提示未配置静默参数 | 在后台补上该 exe 的静默参数 |
+| 装到 C:\APP 时报拒绝访问 | 该目录需要管理员权限，请以管理员身份运行客户端 |
 | 中文乱码 | 客户端脚本已保存为 UTF-8 with BOM，请勿用会去掉 BOM 的编辑器另存 |
