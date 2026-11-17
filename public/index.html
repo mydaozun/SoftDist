@@ -42,6 +42,19 @@
     </form>
 
     <p class="hint">Token 由 <code>wrangler secret put ADMIN_TOKEN</code> 配置，仅保存在当前浏览器标签页会话中。</p>
+
+    <a class="link-inline" href="/user.html">前往用户下载页 →</a>
+  </section>
+
+  <section class="glass client-panel">
+    <div class="client-copy">
+      <h2>客户端静默安装</h2>
+      <p>在目标 Windows 机器上以管理员身份执行下面的命令，客户端会读取本库并安装缺失或版本过旧的软件。</p>
+    </div>
+    <div class="client-cmd">
+      <code id="client-command">powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "…"</code>
+      <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
+    </div>
   </section>
 </main>
 
@@ -61,22 +74,12 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <a class="btn btn-ghost" href="/user.html">用户页</a>
       <button id="refresh-btn" class="btn btn-ghost" type="button" title="刷新列表">刷新</button>
       <button id="add-btn" class="btn btn-primary" type="button">+ 新增软件</button>
       <button id="logout-btn" class="btn btn-ghost btn-danger" type="button">退出</button>
     </div>
   </header>
-
-  <section class="glass client-panel">
-    <div class="client-copy">
-      <h2>客户端静默安装</h2>
-      <p>在目标 Windows 机器上以管理员身份执行下面的命令，客户端会读取本库并安装缺失或版本过旧的软件。</p>
-    </div>
-    <div class="client-cmd">
-      <code id="client-command">powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "…"</code>
-      <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
-    </div>
-  </section>
 
   <section id="grid" class="app-grid" aria-live="polite"></section>
 
@@ -163,6 +166,7 @@
 
 <div id="toast" class="toast" hidden></div>
 
+<script src="/clipboard.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

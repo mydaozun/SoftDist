@@ -73,11 +73,14 @@
     $('token-input').focus();
   }
 
+  function updateClientCommand() {
+    $('client-command').textContent = `powershell -ExecutionPolicy Bypass -File .\\Install-Agent.ps1 -Server "${location.origin}"`;
+  }
+
   function showConsole() {
     $('login-view').hidden = true;
     $('app-view').hidden = false;
     $('stat-line').textContent = '加载中…';
-    $('client-command').textContent = `powershell -ExecutionPolicy Bypass -File .\\Install-Agent.ps1 -Server "${location.origin}"`;
   }
 
   function logout() {
@@ -320,15 +323,16 @@
 
   $('copy-btn').addEventListener('click', async () => {
     const text = $('client-command').textContent;
-    try {
-      await navigator.clipboard.writeText(text);
+    if (await copyText(text)) {
       toast('命令已复制');
-    } catch {
+    } else {
       toast('复制失败，请手动选择文本', true);
     }
   });
 
   /* ---------- 启动 ---------- */
+
+  updateClientCommand();
 
   if (token) {
     showConsole();
