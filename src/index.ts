@@ -16,6 +16,7 @@ interface AppRow {
   silent_args: string;
   install_dir: string;
   sha256: string;
+  category: string;
   enabled: number;
   created_at: string;
   updated_at: string;
@@ -78,6 +79,7 @@ function toApi(row: AppRow) {
     silentArgs: row.silent_args,
     installDir: row.install_dir,
     sha256: row.sha256,
+    category: row.category,
     enabled: row.enabled === 1,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -100,6 +102,7 @@ interface AppInput {
   silentArgs: string;
   installDir: string;
   sha256: string;
+  category: string;
   enabled: boolean;
 }
 
@@ -167,6 +170,14 @@ function parseInput(raw: unknown, partial: boolean): { ok: true; value: Partial<
     out.sha256 = sha;
   }
 
+  if (body.category !== undefined) {
+    const category = typeof body.category === 'string' ? body.category.trim() : '';
+    if (category.length > 40) return { ok: false, error: '分类不能超过 40 字符' };
+    out.category = category;
+  } else if (!partial) {
+    out.category = '';
+  }
+
   if (body.enabled !== undefined || !partial) {
     const enabled = body.enabled === undefined ? true : Boolean(body.enabled);
     out.enabled = enabled;
@@ -213,8 +224,8 @@ async function handleCreate(request: Request, env: Env): Promise<Response> {
 
   try {
     const result = await env.DB.prepare(
-      `INSERT INTO apps (name, version, description, download_url, installer_type, silent_args, install_dir, sha256, enabled)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO apps (name, version, description, download_url, installer_type, silent_args, install_dir, sha256, category, enabled)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         input.name,
@@ -225,6 +236,7 @@ async function handleCreate(request: Request, env: Env): Promise<Response> {
         input.silentArgs,
         input.installDir,
         input.sha256,
+        input.category,
         input.enabled ? 1 : 0
       )
       .run();
@@ -258,6 +270,7 @@ async function handleUpdate(request: Request, env: Env, id: number): Promise<Res
     silentArgs: patch.silentArgs ?? existing.silent_args,
     installDir: patch.installDir ?? existing.install_dir,
     sha256: patch.sha256 ?? existing.sha256,
+    category: patch.category ?? existing.category,
     enabled: patch.enabled ?? existing.enabled === 1,
   };
 
@@ -265,7 +278,7 @@ async function handleUpdate(request: Request, env: Env, id: number): Promise<Res
     await env.DB.prepare(
       `UPDATE apps
           SET name = ?, version = ?, description = ?, download_url = ?, installer_type = ?,
-              silent_args = ?, install_dir = ?, sha256 = ?, enabled = ?, updated_at = datetime('now')
+              silent_args = ?, install_dir = ?, sha256 = ?, category = ?, enabled = ?, updated_at = datetime('now')
         WHERE id = ?`
     )
       .bind(
@@ -277,6 +290,7 @@ async function handleUpdate(request: Request, env: Env, id: number): Promise<Res
         merged.silentArgs,
         merged.installDir,
         merged.sha256,
+        merged.category,
         merged.enabled ? 1 : 0,
         id
       )

@@ -8,6 +8,7 @@
   let apps = [];
   let editingId = null;
   let loading = false;
+  let activeCategory = '';
 
   /* ---------- 基础工具 ---------- */
 
@@ -85,6 +86,7 @@
 
   function logout() {
     token = '';
+    activeCategory = '';
     sessionStorage.removeItem(TOKEN_KEY);
     apps = [];
     $('grid').innerHTML = '';
@@ -136,16 +138,43 @@
     }
   }
 
+  function categories() {
+    return [...new Set(apps.map((app) => app.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  }
+
+  function renderFilter() {
+    const list = categories();
+    const bar = $('cat-filter');
+    if (!list.length) {
+      bar.hidden = true;
+      activeCategory = '';
+      return;
+    }
+    if (activeCategory && !list.includes(activeCategory)) activeCategory = '';
+    bar.hidden = false;
+    bar.innerHTML = [['', `全部 ${apps.length}`]]
+      .concat(list.map((name) => [name, `${name} ${apps.filter((app) => app.category === name).length}`]))
+      .map(
+        ([value, label]) =>
+          `<button class="cat-chip${activeCategory === value ? ' is-active' : ''}" type="button" data-category="${escapeHtml(value)}">${escapeHtml(label)}</button>`
+      )
+      .join('');
+  }
+
   function renderApps() {
     const enabled = apps.filter((a) => a.enabled).length;
     const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
     $('stat-line').textContent = `共 ${apps.length} 个软件 · 已启用 ${enabled} · 更新于 ${time}`;
 
+    renderFilter();
+
+    const visible = activeCategory ? apps.filter((app) => app.category === activeCategory) : apps;
+
     const grid = $('grid');
     const empty = $('empty');
-    empty.hidden = apps.length > 0;
+    empty.hidden = visible.length > 0;
 
-    grid.innerHTML = apps
+    grid.innerHTML = visible
       .map((app, index) => {
         const typeLabel = INSTALLER_LABEL[app.installerType] || app.installerType;
         const installLine = app.silentArgs ? `${typeLabel} · ${app.silentArgs}` : typeLabel;
@@ -156,7 +185,7 @@
         return `
         <article class="app-card glass${app.enabled ? '' : ' is-disabled'}" style="animation-delay:${Math.min(index * 30, 240)}ms">
           <div class="card-head">
-            <h3 class="card-title">${escapeHtml(app.name)}</h3>
+            <h3 class="card-title">${escapeHtml(app.name)}${app.category ? `<span class="cat-tag">${escapeHtml(app.category)}</span>` : ''}</h3>
             ${app.version ? `<span class="card-version">${escapeHtml(app.version)}</span>` : ''}
           </div>
           <p class="card-desc">${app.description ? escapeHtml(app.description) : '无描述'}</p>
@@ -190,9 +219,13 @@
     $('f-desc').value = app ? app.description : '';
     $('f-type').value = app ? app.installerType : 'auto';
     $('f-args').value = app ? app.silentArgs : '';
+    $('f-category').value = app ? app.category || '' : '';
     $('f-dir').value = app ? app.installDir : '';
     $('f-sha').value = app ? app.sha256 : '';
     $('f-enabled').checked = app ? app.enabled : true;
+    $('category-list').innerHTML = categories()
+      .map((name) => `<option value="${escapeHtml(name)}"></option>`)
+      .join('');
     $('form-error').hidden = true;
     $('modal').hidden = false;
     setTimeout(() => $('f-name').focus(), 40);
@@ -213,6 +246,7 @@
       description: $('f-desc').value.trim(),
       installerType: $('f-type').value,
       silentArgs: $('f-args').value.trim(),
+      category: $('f-category').value.trim(),
       installDir: $('f-dir').value.trim(),
       sha256: $('f-sha').value.trim(),
       enabled: $('f-enabled').checked,
@@ -305,6 +339,13 @@
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !$('modal').hidden) closeModal();
+  });
+
+  $('cat-filter').addEventListener('click', (event) => {
+    const chip = event.target.closest('button[data-category]');
+    if (!chip) return;
+    activeCategory = chip.dataset.category;
+    renderApps();
   });
 
   $('grid').addEventListener('click', (event) => {

@@ -14,6 +14,7 @@
   };
 
   let apps = [];
+  let activeCategory = '';
   const picked = new Set();
 
   const escapeHtml = (value) =>
@@ -72,10 +73,60 @@
       </label>`;
   }
 
+  function categories() {
+    return [...new Set(apps.map((app) => app.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
+  }
+
+  function visibleApps() {
+    return activeCategory ? apps.filter((app) => app.category === activeCategory) : apps;
+  }
+
+  function renderFilter() {
+    const list = categories();
+    const bar = $('cat-filter');
+    if (!list.length) {
+      bar.hidden = true;
+      activeCategory = '';
+      return;
+    }
+    if (activeCategory && !list.includes(activeCategory)) activeCategory = '';
+    bar.hidden = false;
+    bar.innerHTML = [['', `全部 ${apps.length}`]]
+      .concat(list.map((name) => [name, `${name} ${apps.filter((app) => app.category === name).length}`]))
+      .map(
+        ([value, label]) =>
+          `<button class="cat-chip${activeCategory === value ? ' is-active' : ''}" type="button" data-category="${escapeHtml(value)}">${escapeHtml(label)}</button>`
+      )
+      .join('');
+  }
+
   function render() {
-    const grid = $('grid');
-    grid.innerHTML = apps.map(cardHtml).join('');
-    $('empty').hidden = apps.length > 0;
+    renderFilter();
+
+    const groups = new Map();
+    for (const app of visibleApps()) {
+      const key = app.category || '';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(app);
+    }
+    const keys = [...groups.keys()].sort((a, b) => {
+      if (!a) return 1;
+      if (!b) return -1;
+      return a.localeCompare(b, 'zh-CN');
+    });
+
+    $('grid').innerHTML = keys
+      .map((key) => {
+        const items = groups.get(key);
+        const title = key || '未分类';
+        return `<section class="cat-group">
+          <h2 class="cat-group-title">${escapeHtml(title)}<span>${items.length}</span></h2>
+          <div class="cat-group-grid">${items.map(cardHtml).join('')}</div>
+        </section>`;
+      })
+      .join('');
+
+    $('empty').hidden = visibleApps().length > 0;
     $('user-stat').textContent = `软件下载 · 共 ${apps.length} 个可安装`;
     syncBar();
   }
@@ -111,14 +162,22 @@
     syncBar();
   });
 
+  $('cat-filter').addEventListener('click', (event) => {
+    const chip = event.target.closest('button[data-category]');
+    if (!chip) return;
+    activeCategory = chip.dataset.category;
+    render();
+  });
+
   $('select-all').addEventListener('click', () => {
-    if (!apps.length) return toast('暂无可选软件', true);
-    apps.forEach((app) => picked.add(app.name));
+    const visible = visibleApps();
+    if (!visible.length) return toast('暂无可选软件', true);
+    visible.forEach((app) => picked.add(app.name));
     render();
   });
 
   $('select-none').addEventListener('click', () => {
-    picked.clear();
+    visibleApps().forEach((app) => picked.delete(app.name));
     render();
   });
 
