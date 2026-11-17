@@ -15,6 +15,9 @@
 .PARAMETER DownloadDir
     安装包缓存目录，默认 %ProgramData%\SoftDist\cache
 
+.PARAMETER InstallRoot
+    默认安装根目录，软件未单独配置安装目录时安装到 <InstallRoot>\<软件名>，默认 C:\APP
+
 .PARAMETER LogPath
     日志文件路径，默认 %ProgramData%\SoftDist\install.log
 
@@ -41,6 +44,8 @@ param(
     [string[]]$App,
 
     [string]$DownloadDir = (Join-Path $env:ProgramData 'SoftDist\cache'),
+
+    [string]$InstallRoot = 'C:\APP',
 
     [string]$LogPath = (Join-Path $env:ProgramData 'SoftDist\install.log'),
 
@@ -191,6 +196,26 @@ function Compare-AppVersion {
 
 # ---------------------------------------------------------------- 下载与安装
 
+function Get-SafeName {
+    param([string]$Name)
+    $safe = ($Name -replace '[<>:"/\\|?*]', '_').Trim().TrimEnd('.')
+    if (-not $safe) { $safe = 'app' }
+    return $safe
+}
+
+function Get-InstallDir {
+    param(
+        [string]$Configured,
+        [string]$AppName,
+        [string]$Root
+    )
+
+    if (-not [string]::IsNullOrWhiteSpace($Configured)) {
+        return ($Configured.Trim() -replace '[\\/]+$', '')
+    }
+    return (Join-Path $Root (Get-SafeName -Name $AppName))
+}
+
 function Resolve-InstallerType {
     param(
         [string]$Declared,
@@ -280,24 +305,33 @@ function Invoke-Installer {
         [string]$FilePath,
         [string]$Type,
         [string]$SilentArgs,
-        [string]$AppName
+        [string]$InstallDir
     )
 
     $successCodes = @(0, 3010, 1641)
 
     switch ($Type) {
         'msi' {
-            $arguments = @('/i', "`"$FilePath`"", '/qn', '/norestart')
-            if ($SilentArgs) { $arguments += $SilentArgs }
-            Write-Log "执行：msiexec.exe $($arguments -join ' ')"
+            $arguments = "/i `"$FilePath`" /qn /norestart"
+            # MSI 无法用命令行强制目录时会被忽略，不会导致安装失败
+            if ($InstallDir -and $SilentArgs -notmatch '(?i)INSTALLDIR|APPLICATIONFOLDER|TARGETDIR') {
+                $arguments += " INSTALLDIR=`"$InstallDir`""
+            }
+            if ($SilentArgs) { $arguments += " $SilentArgs" }
+            Write-Log "执行：msiexec.exe $arguments"
             $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru
         }
         'exe' {
             if (-not $SilentArgs) {
                 throw "该软件未配置静默参数。请在控制台把安装类型设为 exe 并填写正确的静默参数（如 /S、/VERYSILENT /NORESTART）。"
             }
-            Write-Log "执行：$FilePath $SilentArgs"
-            $process = Start-Process -FilePath $FilePath -ArgumentList $SilentArgs -Wait -PassThru
+            $arguments = $SilentArgs
+            # NSIS 用 /D=，必须放在最后且不能加引号；Inno 请直接在静默参数里写 /DIR="..."
+            if ($InstallDir -and $arguments -notmatch '(?i)/D=|/DIR=|INSTALLDIR') {
+                $arguments = "$arguments /D=$InstallDir"
+            }
+            Write-Log "执行：$FilePath $arguments"
+            $process = Start-Process -FilePath $FilePath -ArgumentList $arguments -Wait -PassThru
         }
         'ps1' {
             $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$FilePath`"")
@@ -311,9 +345,8 @@ function Invoke-Installer {
             return 0
         }
         'zip' {
-            $target = Join-Path $env:ProgramData ('SoftDist\packages\' + ($AppName -replace '[^\w\.\-]', '_'))
-            Write-Log "解压到：$target（zip 类型不做静默安装）"
-            Expand-Archive -LiteralPath $FilePath -DestinationPath $target -Force
+            Write-Log "解压到：$InstallDir（zip 类型不做静默安装）"
+            Expand-Archive -LiteralPath $FilePath -DestinationPath $InstallDir -Force
             return 0
         }
         'none' {
@@ -378,14 +411,12 @@ function Invoke-Main {
             }
 
             $comparison = Compare-AppVersion -Installed $installedVersion -Target ([string]$item.version)
+            $installDir = Get-InstallDir -Configured ([string]$item.installDir) -AppName $name -Root $InstallRoot
 
-            if ($item.installerType -eq 'zip' -and $installed -eq $null -and -not $Force) {
-                $zipTarget = Join-Path $env:ProgramData ('SoftDist\packages\' + ($name -replace '[^\w\.\-]', '_'))
-                if (Test-Path -LiteralPath $zipTarget) {
-                    Write-Log "解压目录已存在，跳过：$zipTarget" 'OK'
-                    $skipCount++
-                    continue
-                }
+            if ($item.installerType -eq 'zip' -and -not $Force -and (Test-Path -LiteralPath $installDir)) {
+                Write-Log "解压目录已存在，跳过：$installDir" 'OK'
+                $skipCount++
+                continue
             }
 
             if (-not $Force -and $comparison -ge 0) {
@@ -401,7 +432,7 @@ function Invoke-Main {
 
             $action = if ($installed) { '升级' } else { '安装' }
             if ($DryRun) {
-                Write-Log "[DryRun] 需要$action 到版本 $($item.version)" 'WARN'
+                Write-Log "[DryRun] 需要$action 到版本 $($item.version)，目标目录 $installDir" 'WARN'
                 $skipCount++
                 continue
             }
@@ -418,7 +449,16 @@ function Invoke-Main {
             }
 
             $type = Resolve-InstallerType -Declared ([string]$item.installerType) -FilePath $path
-            $code = Invoke-Installer -FilePath $path -Type $type -SilentArgs ([string]$item.silentArgs) -AppName $name
+
+            if (@('msi', 'exe', 'zip') -contains $type) {
+                if (-not (Test-Path -LiteralPath $installDir)) {
+                    New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+                }
+                Write-Log "安装目录：$installDir"
+            }
+
+            $code = Invoke-Installer -FilePath $path -Type $type -SilentArgs ([string]$item.silentArgs) `
+                -InstallDir $installDir
 
             if ($code -eq 3010 -or $code -eq 1641) {
                 Write-Log "$name $action 成功，需要重启系统后生效" 'WARN'

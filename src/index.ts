@@ -14,6 +14,7 @@ interface AppRow {
   download_url: string;
   installer_type: string;
   silent_args: string;
+  install_dir: string;
   sha256: string;
   enabled: number;
   created_at: string;
@@ -75,6 +76,7 @@ function toApi(row: AppRow) {
     downloadUrl: row.download_url,
     installerType: row.installer_type,
     silentArgs: row.silent_args,
+    installDir: row.install_dir,
     sha256: row.sha256,
     enabled: row.enabled === 1,
     createdAt: row.created_at,
@@ -96,6 +98,7 @@ interface AppInput {
   downloadUrl: string;
   installerType: InstallerType;
   silentArgs: string;
+  installDir: string;
   sha256: string;
   enabled: boolean;
 }
@@ -145,6 +148,17 @@ function parseInput(raw: unknown, partial: boolean): { ok: true; value: Partial<
     const args = typeof body.silentArgs === 'string' ? body.silentArgs.trim() : '';
     if (args.length > 500) return { ok: false, error: '静默参数不能超过 500 字符' };
     out.silentArgs = args;
+  }
+
+  if (body.installDir !== undefined || !partial) {
+    const raw = typeof body.installDir === 'string' ? body.installDir.trim() : '';
+    if (raw.length > 260) return { ok: false, error: '安装目录不能超过 260 字符' };
+    if (raw && !/^[a-zA-Z]:\\/.test(raw) && !/^\\\\[\w.$-]+\\/.test(raw)) {
+      return { ok: false, error: '安装目录必须是绝对路径，例如 C:\\APP\\App' };
+    }
+    let dir = raw;
+    if (dir.length > 3) dir = dir.replace(/[\\/]+$/, '');
+    out.installDir = dir;
   }
 
   if (body.sha256 !== undefined || !partial) {
@@ -199,8 +213,8 @@ async function handleCreate(request: Request, env: Env): Promise<Response> {
 
   try {
     const result = await env.DB.prepare(
-      `INSERT INTO apps (name, version, description, download_url, installer_type, silent_args, sha256, enabled)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO apps (name, version, description, download_url, installer_type, silent_args, install_dir, sha256, enabled)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
       .bind(
         input.name,
@@ -209,6 +223,7 @@ async function handleCreate(request: Request, env: Env): Promise<Response> {
         input.downloadUrl,
         input.installerType,
         input.silentArgs,
+        input.installDir,
         input.sha256,
         input.enabled ? 1 : 0
       )
@@ -241,6 +256,7 @@ async function handleUpdate(request: Request, env: Env, id: number): Promise<Res
     downloadUrl: patch.downloadUrl ?? existing.download_url,
     installerType: patch.installerType ?? existing.installer_type,
     silentArgs: patch.silentArgs ?? existing.silent_args,
+    installDir: patch.installDir ?? existing.install_dir,
     sha256: patch.sha256 ?? existing.sha256,
     enabled: patch.enabled ?? existing.enabled === 1,
   };
@@ -249,7 +265,7 @@ async function handleUpdate(request: Request, env: Env, id: number): Promise<Res
     await env.DB.prepare(
       `UPDATE apps
           SET name = ?, version = ?, description = ?, download_url = ?, installer_type = ?,
-              silent_args = ?, sha256 = ?, enabled = ?, updated_at = datetime('now')
+              silent_args = ?, install_dir = ?, sha256 = ?, enabled = ?, updated_at = datetime('now')
         WHERE id = ?`
     )
       .bind(
@@ -259,6 +275,7 @@ async function handleUpdate(request: Request, env: Env, id: number): Promise<Res
         merged.downloadUrl,
         merged.installerType,
         merged.silentArgs,
+        merged.installDir,
         merged.sha256,
         merged.enabled ? 1 : 0,
         id

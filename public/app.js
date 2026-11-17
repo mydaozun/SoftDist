@@ -148,6 +148,7 @@
         const installLine = app.silentArgs ? `${typeLabel} · ${app.silentArgs}` : typeLabel;
         const sha = app.sha256 ? `${app.sha256.slice(0, 12)}…` : '未设置';
         const source = app.downloadUrl.replace(/^https?:\/\//i, '');
+        const target = app.installDir || `C:\\APP\\${app.name}`;
 
         return `
         <article class="app-card glass${app.enabled ? '' : ' is-disabled'}" style="animation-delay:${Math.min(index * 30, 240)}ms">
@@ -159,6 +160,7 @@
           <div class="card-meta">
             <div class="meta-row"><b>来源</b><span title="${escapeHtml(app.downloadUrl)}">${escapeHtml(source)}</span></div>
             <div class="meta-row"><b>安装</b><span title="${escapeHtml(installLine)}">${escapeHtml(installLine)}</span></div>
+            <div class="meta-row"><b>目录</b><span title="${escapeHtml(target)}">${escapeHtml(target)}</span></div>
             <div class="meta-row"><b>校验</b><span title="${escapeHtml(app.sha256 || '未设置')}">${escapeHtml(sha)}</span></div>
           </div>
           <div class="card-foot">
@@ -184,6 +186,7 @@
     $('f-desc').value = app ? app.description : '';
     $('f-type').value = app ? app.installerType : 'auto';
     $('f-args').value = app ? app.silentArgs : '';
+    $('f-dir').value = app ? app.installDir : '';
     $('f-sha').value = app ? app.sha256 : '';
     $('f-enabled').checked = app ? app.enabled : true;
     $('form-error').hidden = true;
@@ -206,6 +209,7 @@
       description: $('f-desc').value.trim(),
       installerType: $('f-type').value,
       silentArgs: $('f-args').value.trim(),
+      installDir: $('f-dir').value.trim(),
       sha256: $('f-sha').value.trim(),
       enabled: $('f-enabled').checked,
     };
