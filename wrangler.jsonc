@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "soft-dist",
+  "name": "softdist",
   "main": "src/index.ts",
   "compatibility_date": "2025-10-01",
   // 静态前端：public 目录直接由 Workers Assets 托管
@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "soft-dist",
-      "database_id": "REPLACE_WITH_YOUR_D1_DATABASE_ID",
+      "database_id": "cc206ef7-c072-44fb-bc64-f47b12298b13",
       "migrations_dir": "migrations"
     }
   ],
