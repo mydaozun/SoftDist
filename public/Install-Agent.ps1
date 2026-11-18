@@ -300,6 +300,52 @@ function Get-PackageFile {
     return $destination
 }
 
+# 识别 exe 安装包的打包器类型：nsis / inno / installshield / wix / squirrel / unknown
+# 扫全文件找特征字符串，找到即停；仅用于静默参数留空时兜底，不会修改安装包
+function Get-ExeInstallerKind {
+    param([string]$FilePath)
+
+    $markers = [ordered]@{
+        'inno'          = 'Inno Setup Setup Data'
+        'nsis'          = 'NullsoftInst'
+        'installshield' = 'InstallShield'
+        'wix'           = 'wixburn'
+        'squirrel'      = 'Squirrel'
+    }
+    # Electron 应用常带有 Squirrel 自动更新相关字符串，因此 Squirrel 只作最后兜底
+    $strongKeys = @('inno', 'nsis', 'installshield', 'wix')
+
+    $chunkSize = 1MB
+    $buffer = New-Object byte[] $chunkSize
+    $carry = ''
+    $squirrelFound = $false
+    $stream = [System.IO.File]::OpenRead($FilePath)
+
+    try {
+        while ($true) {
+            $read = $stream.Read($buffer, 0, $chunkSize)
+            if ($read -le 0) { break }
+
+            $text = $carry + [System.Text.Encoding]::ASCII.GetString($buffer, 0, $read)
+            foreach ($key in $strongKeys) {
+                if ($text.IndexOf($markers[$key], [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                    return $key
+                }
+            }
+            if (-not $squirrelFound -and $text.IndexOf($markers['squirrel'], [StringComparison]::OrdinalIgnoreCase) -ge 0) {
+                $squirrelFound = $true
+            }
+            $carry = if ($text.Length -gt 64) { $text.Substring($text.Length - 64) } else { $text }
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+
+    if ($squirrelFound) { return 'squirrel' }
+    return 'unknown'
+}
+
 function Invoke-Installer {
     param(
         [string]$FilePath,
@@ -322,13 +368,36 @@ function Invoke-Installer {
             $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru
         }
         'exe' {
+            # 未配置静默参数时自动识别打包器并套用默认参数，避免逐个软件手工填写
+            $kind = 'nsis'
             if (-not $SilentArgs) {
-                throw "该软件未配置静默参数。请在控制台把安装类型设为 exe 并填写正确的静默参数（如 /S、/VERYSILENT /NORESTART）。"
+                $kind = Get-ExeInstallerKind -FilePath $FilePath
+                $SilentArgs = switch ($kind) {
+                    'inno' { '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' }
+                    'installshield' { '/s' }
+                    'wix' { '/quiet' }
+                    'squirrel' { '--silent' }
+                    default { '/S' }
+                }
+                Write-Log "未配置静默参数，自动识别安装器：$kind，使用默认参数：$SilentArgs" 'WARN'
             }
+
             $arguments = $SilentArgs
-            # NSIS 用 /D=，必须放在最后且不能加引号；Inno 请直接在静默参数里写 /DIR="..."
-            if ($InstallDir -and $arguments -notmatch '(?i)/D=|/DIR=|INSTALLDIR') {
-                $arguments = "$arguments /D=$InstallDir"
+            if ($InstallDir) {
+                switch ($kind) {
+                    # Inno Setup 用 /DIR=，可带引号
+                    'inno' {
+                        if ($arguments -notmatch '(?i)/DIR=') { $arguments = "$arguments /DIR=`"$InstallDir`"" }
+                    }
+                    # InstallShield / WiX / Squirrel 没有可靠的目标目录参数，保持默认安装位置
+                    'installshield' { }
+                    'wix' { }
+                    'squirrel' { }
+                    # NSIS 用 /D=，必须放在最后且不能加引号
+                    default {
+                        if ($arguments -notmatch '(?i)/D=') { $arguments = "$arguments /D=$InstallDir" }
+                    }
+                }
             }
             Write-Log "执行：$FilePath $arguments"
             $process = Start-Process -FilePath $FilePath -ArgumentList $arguments -Wait -PassThru

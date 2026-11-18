@@ -262,11 +262,6 @@
       errorEl.hidden = false;
       return;
     }
-    if (payload.installerType === 'exe' && !payload.silentArgs) {
-      errorEl.textContent = 'exe 安装包必须填写静默参数（如 /S 或 /VERYSILENT /NORESTART），否则客户端无法静默安装';
-      errorEl.hidden = false;
-      return;
-    }
 
     const saveBtn = $('save-btn');
     saveBtn.disabled = true;

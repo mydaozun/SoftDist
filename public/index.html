@@ -128,7 +128,7 @@
           <select id="f-type">
             <option value="auto">auto（按扩展名推断）</option>
             <option value="msi">msi（msiexec /qn）</option>
-            <option value="exe">exe（自定义静默参数）</option>
+            <option value="exe">exe（静默安装）</option>
             <option value="ps1">ps1（PowerShell 脚本）</option>
             <option value="msix">msix（Add-AppxPackage）</option>
             <option value="zip">zip（仅解压）</option>
@@ -137,9 +137,16 @@
         </label>
         <label class="field">
           <span>静默参数</span>
-          <input id="f-args" type="text" maxlength="500" placeholder="exe 必填，如 /S 或 /VERYSILENT /NORESTART" />
+          <input id="f-args" type="text" maxlength="500" list="args-list" placeholder="留空自动识别（NSIS /S、Inno /VERYSILENT…）" />
         </label>
       </div>
+      <datalist id="args-list">
+        <option value="/S"></option>
+        <option value="/VERYSILENT /SUPPRESSMSGBOXES /NORESTART"></option>
+        <option value="/s /v&quot;/qn&quot;"></option>
+        <option value="/quiet"></option>
+        <option value="/s"></option>
+      </datalist>
 
       <div class="row-2">
         <label class="field">

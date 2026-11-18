@@ -70,7 +70,7 @@ npm run dev                      # http://127.0.0.1:8787
    - **分类**：可选（≤40 字符），管理台与用户页会据此显示筛选按钮，用户页按分类分组展示。
    - **下载链接**：`https://…`、`\\fileserver\share\app.exe` 或 `C:\pkg\app.exe`。
    - **安装类型**：`msi` / `exe` / `ps1` / `msix` / `zip` / `none` / `auto`（按扩展名推断）。
-   - **静默参数**：exe 必填（客户端不会盲目猜测）。
+   - **静默参数**：可留空。客户端会识别安装包类型并套用默认值（NSIS `/S`、Inno Setup `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`、InstallShield `/s`、WiX `/quiet`、Squirrel `--silent`，识别不出按 NSIS 处理）；也可手填覆盖。
    - **安装目录**：留空则安装到 `C:\APP\<软件名>`；也可填 `D:\Tools\Foo` 等绝对路径。
    - **SHA256**：可选，填了客户端就会校验，防止下载被篡改。
 3. 「启用」开关控制客户端是否可见，停用即下线该软件。
