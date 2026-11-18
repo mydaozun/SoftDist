@@ -709,6 +709,15 @@ button.pill:disabled {
 }
 
 /* 分类：筛选条与分组标题 */
+.list-tools {
+  display: grid;
+  gap: 10px;
+}
+
+.search-input {
+  max-width: 340px;
+}
+
 .cat-filter {
   display: flex;
   flex-wrap: wrap;

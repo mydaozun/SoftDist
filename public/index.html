@@ -81,13 +81,16 @@
     </div>
   </header>
 
-  <nav id="cat-filter" class="cat-filter" aria-label="按分类筛选" hidden></nav>
+  <div class="list-tools">
+    <input id="search" class="search-input" type="text" autocomplete="off" placeholder="搜索软件名称、描述或分类" />
+    <nav id="cat-filter" class="cat-filter" aria-label="按分类筛选" hidden></nav>
+  </div>
 
   <section id="grid" class="app-grid" aria-live="polite"></section>
 
   <section id="empty" class="glass empty-state" hidden>
-    <h2>还没有软件</h2>
-    <p>点击「新增软件」把软件名称和下载链接写入数据库。</p>
+    <h2 id="empty-title">还没有软件</h2>
+    <p id="empty-hint">点击「新增软件」把软件名称和下载链接写入数据库。</p>
   </section>
 </main>
 

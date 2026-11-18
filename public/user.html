@@ -37,13 +37,16 @@
     </div>
   </header>
 
-  <nav id="cat-filter" class="cat-filter" aria-label="按分类筛选"></nav>
+  <div class="list-tools">
+    <input id="search" class="search-input" type="text" autocomplete="off" placeholder="搜索软件名称、描述或分类" />
+    <nav id="cat-filter" class="cat-filter" aria-label="按分类筛选"></nav>
+  </div>
 
   <section id="grid" class="app-grid" aria-live="polite"></section>
 
   <section id="empty" class="glass empty-state" hidden>
-    <h2>暂无可下载的软件</h2>
-    <p>管理员在控制台添加并启用软件后，这里就会出现。</p>
+    <h2 id="empty-title">暂无可下载的软件</h2>
+    <p id="empty-hint">管理员在控制台添加并启用软件后，这里就会出现。</p>
   </section>
 
   <section class="glass client-panel pick-bar">

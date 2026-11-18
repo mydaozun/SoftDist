@@ -15,6 +15,7 @@
 
   let apps = [];
   let activeCategory = '';
+  let searchTerm = '';
   const picked = new Set();
 
   const escapeHtml = (value) =>
@@ -86,8 +87,17 @@
     return [...new Set(apps.map((app) => app.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-CN'));
   }
 
+  function matchesSearch(app) {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
+    return [app.name, app.version, app.description, app.category, app.installDir].some((value) =>
+      String(value || '').toLowerCase().includes(term)
+    );
+  }
+
   function visibleApps() {
-    return activeCategory ? apps.filter((app) => app.category === activeCategory) : apps;
+    const list = apps.filter(matchesSearch);
+    return activeCategory ? list.filter((app) => app.category === activeCategory) : list;
   }
 
   function renderFilter() {
@@ -136,6 +146,12 @@
       .join('');
 
     $('empty').hidden = visibleApps().length > 0;
+    if (!$('empty').hidden) {
+      const filtering = Boolean(activeCategory || searchTerm.trim());
+      $('empty-title').textContent = filtering && apps.length ? '没有匹配的软件' : '暂无可下载的软件';
+      $('empty-hint').textContent =
+        filtering && apps.length ? '换个关键词或分类试试。' : '管理员在控制台添加并启用软件后，这里就会出现。';
+    }
     $('user-stat').textContent = `软件下载 · 共 ${apps.length} 个可安装`;
     syncBar();
   }
@@ -169,6 +185,11 @@
     else picked.delete(name);
     input.closest('.pick-card').classList.toggle('is-picked', input.checked);
     syncBar();
+  });
+
+  $('search').addEventListener('input', (event) => {
+    searchTerm = event.target.value;
+    render();
   });
 
   $('cat-filter').addEventListener('click', (event) => {

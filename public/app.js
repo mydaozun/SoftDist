@@ -9,6 +9,7 @@
   let editingId = null;
   let loading = false;
   let activeCategory = '';
+  let searchTerm = '';
 
   /* ---------- 基础工具 ---------- */
 
@@ -89,6 +90,8 @@
   function logout() {
     token = '';
     activeCategory = '';
+    searchTerm = '';
+    $('search').value = '';
     sessionStorage.removeItem(TOKEN_KEY);
     apps = [];
     $('grid').innerHTML = '';
@@ -163,6 +166,14 @@
       .join('');
   }
 
+  function matchesSearch(app) {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
+    return [app.name, app.version, app.description, app.category, app.installDir].some((value) =>
+      String(value || '').toLowerCase().includes(term)
+    );
+  }
+
   function renderApps() {
     const enabled = apps.filter((a) => a.enabled).length;
     const time = new Date().toLocaleTimeString('zh-CN', { hour12: false });
@@ -170,11 +181,20 @@
 
     renderFilter();
 
-    const visible = activeCategory ? apps.filter((app) => app.category === activeCategory) : apps;
+    let visible = apps.filter(matchesSearch);
+    if (activeCategory) visible = visible.filter((app) => app.category === activeCategory);
 
     const grid = $('grid');
     const empty = $('empty');
+    const filtering = Boolean(activeCategory || searchTerm.trim());
     empty.hidden = visible.length > 0;
+    if (!empty.hidden) {
+      $('empty-title').textContent = filtering && apps.length ? '没有匹配的软件' : '还没有软件';
+      $('empty-hint').textContent =
+        filtering && apps.length
+          ? '换个关键词或分类试试。'
+          : '点击「新增软件」把软件名称和下载链接写入数据库。';
+    }
 
     grid.innerHTML = visible
       .map((app, index) => {
@@ -336,6 +356,11 @@
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && !$('modal').hidden) closeModal();
+  });
+
+  $('search').addEventListener('input', (event) => {
+    searchTerm = event.target.value;
+    renderApps();
   });
 
   $('cat-filter').addEventListener('click', (event) => {
