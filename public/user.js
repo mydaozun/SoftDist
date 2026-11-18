@@ -36,15 +36,19 @@
 
   /**
    * 生成客户端命令。
-   * 用 -Command 而非 -File：-File 无法把 `'A','B'` 绑定成数组，会拼成一个 "A,B" 导致匹配不到软件。
+   * 1) 用 -Command 而非 -File：-File 无法把 `'A','B'` 绑定成数组，会拼成一个 "A,B" 导致匹配不到软件。
+   * 2) 先把脚本下载到固定路径再执行，用户无需本地准备 Install-Agent.ps1。
+   * 3) 全部路径写死不使用 $env: 变量，保证 CMD 与 PowerShell 粘贴都能正确执行。
    * PowerShell 单引号字符串里的 ' 需要写成 ''。
    */
   function buildCommand(names) {
-    const script = `& '.\\Install-Agent.ps1' -Server '${location.origin}'`;
-    const base = `powershell -ExecutionPolicy Bypass -Command "${script}"`;
+    const origin = location.origin;
+    const local = 'C:\\Windows\\Temp\\Install-Agent.ps1';
+    const invoke = `iwr '${origin}/Install-Agent.ps1' -OutFile ${local} -UseBasicParsing; & ${local} -Server '${origin}'`;
+    const base = `powershell -ExecutionPolicy Bypass -Command "${invoke}"`;
     if (!names.length) return base;
     const list = names.map((name) => `'${name.replace(/'/g, "''")}'`).join(',');
-    return `powershell -ExecutionPolicy Bypass -Command "${script} -App ${list}"`;
+    return `powershell -ExecutionPolicy Bypass -Command "${invoke} -App ${list}"`;
   }
 
   function syncBar() {

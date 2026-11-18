@@ -52,7 +52,7 @@
       <p id="pick-hint">勾选需要的软件即可生成对应的安装命令；未勾选时命令会安装全部已启用软件。</p>
     </div>
     <div class="client-cmd">
-      <code id="user-command">powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "…"</code>
+      <code id="user-command">powershell -ExecutionPolicy Bypass -Command "iwr '…/Install-Agent.ps1' -OutFile C:\Windows\Temp\Install-Agent.ps1 -UseBasicParsing; & C:\Windows\Temp\Install-Agent.ps1 -Server '…'"</code>
       <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
     </div>
   </section>

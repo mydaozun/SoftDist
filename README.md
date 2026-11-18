@@ -28,7 +28,7 @@
 | `src/index.ts` | Worker：路由、鉴权、校验、D1 CRUD |
 | `public/` | 前端：`index.html` 管理台（登录 + 卡片列表 + 新增/编辑/删除）、`user.html` 只读用户下载页 |
 | `migrations/0001_init.sql` | D1 建表脚本 |
-| `client/Install-Agent.ps1` | Windows 静默安装客户端 |
+| `public/Install-Agent.ps1` | Windows 静默安装客户端（同时对外提供 `/Install-Agent.ps1` 下载） |
 | `wrangler.jsonc` | Worker / 静态资源 / D1 绑定配置 |
 
 ## 一、部署（不用 GitHub Actions，一条命令发布）
@@ -89,20 +89,24 @@ npm run dev                      # http://127.0.0.1:8787
 
 ## 三、Windows 客户端
 
-把 `client/Install-Agent.ps1` 分发到目标机器，**以管理员身份**运行：
+客户端脚本随站点一起托管在 `<你的域名>/Install-Agent.ps1`。**以管理员身份**打开 CMD 或 PowerShell，直接粘贴页面生成的命令即可，无需事先下载脚本：
 
 ```powershell
 # 安装/升级全部软件
-powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "https://soft-dist.xxx.workers.dev"
+powershell -ExecutionPolicy Bypass -Command "iwr 'https://soft-dist.xxx.workers.dev/Install-Agent.ps1' -OutFile C:\Windows\Temp\Install-Agent.ps1 -UseBasicParsing; & C:\Windows\Temp\Install-Agent.ps1 -Server 'https://soft-dist.xxx.workers.dev'"
 
 # 只处理指定软件（支持通配符）
-.\Install-Agent.ps1 -Server "https://soft-dist.xxx.workers.dev" -App "7-Zip","Google*"
+powershell -ExecutionPolicy Bypass -Command "iwr 'https://soft-dist.xxx.workers.dev/Install-Agent.ps1' -OutFile C:\Windows\Temp\Install-Agent.ps1 -UseBasicParsing; & C:\Windows\Temp\Install-Agent.ps1 -Server 'https://soft-dist.xxx.workers.dev' -App '7-Zip','Google*'"
 
 # 只看会做什么，不实际下载安装
-.\Install-Agent.ps1 -Server "https://soft-dist.xxx.workers.dev" -DryRun
+powershell -ExecutionPolicy Bypass -Command "iwr 'https://soft-dist.xxx.workers.dev/Install-Agent.ps1' -OutFile C:\Windows\Temp\Install-Agent.ps1 -UseBasicParsing; & C:\Windows\Temp\Install-Agent.ps1 -Server 'https://soft-dist.xxx.workers.dev' -DryRun"
+```
 
-# 强制重装
-.\Install-Agent.ps1 -Server "https://soft-dist.xxx.workers.dev" -Force
+也可以把脚本下载到本地后运行（`C:\Windows\Temp` 需要管理员权限写入，脚本本身也要求管理员）：
+
+```powershell
+iwr "https://soft-dist.xxx.workers.dev/Install-Agent.ps1" -OutFile C:\SoftDist\Install-Agent.ps1 -UseBasicParsing
+powershell -ExecutionPolicy Bypass -File C:\SoftDist\Install-Agent.ps1 -Server "https://soft-dist.xxx.workers.dev" -App "7-Zip","Google*"
 ```
 
 | 参数 | 默认值 | 说明 |

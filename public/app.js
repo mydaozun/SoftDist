@@ -75,7 +75,9 @@
   }
 
   function updateClientCommand() {
-    $('client-command').textContent = `powershell -ExecutionPolicy Bypass -File .\\Install-Agent.ps1 -Server "${location.origin}"`;
+    const origin = location.origin;
+    $('client-command').textContent =
+      `powershell -ExecutionPolicy Bypass -Command "iwr '${origin}/Install-Agent.ps1' -OutFile C:\\Windows\\Temp\\Install-Agent.ps1 -UseBasicParsing; & C:\\Windows\\Temp\\Install-Agent.ps1 -Server '${origin}'"`;
   }
 
   function showConsole() {

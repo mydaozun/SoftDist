@@ -52,7 +52,7 @@
       <p>在目标 Windows 机器上以管理员身份执行下面的命令，客户端会读取本库并安装缺失或版本过旧的软件。</p>
     </div>
     <div class="client-cmd">
-      <code id="client-command">powershell -ExecutionPolicy Bypass -File .\Install-Agent.ps1 -Server "…"</code>
+      <code id="client-command">powershell -ExecutionPolicy Bypass -Command "iwr '…/Install-Agent.ps1' -OutFile C:\Windows\Temp\Install-Agent.ps1 -UseBasicParsing; & C:\Windows\Temp\Install-Agent.ps1 -Server '…'"</code>
       <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
     </div>
   </section>
