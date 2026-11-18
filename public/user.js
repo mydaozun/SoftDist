@@ -34,12 +34,17 @@
     }, 2600);
   }
 
-  /** 生成客户端命令；PowerShell 单引号字符串里的 ' 需要写成 '' */
+  /**
+   * 生成客户端命令。
+   * 用 -Command 而非 -File：-File 无法把 `'A','B'` 绑定成数组，会拼成一个 "A,B" 导致匹配不到软件。
+   * PowerShell 单引号字符串里的 ' 需要写成 ''。
+   */
   function buildCommand(names) {
-    const base = `powershell -ExecutionPolicy Bypass -File .\\Install-Agent.ps1 -Server "${location.origin}"`;
+    const script = `& '.\\Install-Agent.ps1' -Server '${location.origin}'`;
+    const base = `powershell -ExecutionPolicy Bypass -Command "${script}"`;
     if (!names.length) return base;
     const list = names.map((name) => `'${name.replace(/'/g, "''")}'`).join(',');
-    return `${base} -App ${list}`;
+    return `powershell -ExecutionPolicy Bypass -Command "${script} -App ${list}"`;
   }
 
   function syncBar() {
