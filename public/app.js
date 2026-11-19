@@ -24,6 +24,7 @@
     exe: 'EXE',
     ps1: '脚本',
     msix: 'MSIX',
+    msstore: '微软商店',
     zip: '压缩包',
     none: '仅下载',
   };
@@ -202,7 +203,8 @@
         const installLine = app.silentArgs ? `${typeLabel} · ${app.silentArgs}` : typeLabel;
         const sha = app.sha256 ? `${app.sha256.slice(0, 12)}…` : '未设置';
         const source = app.downloadUrl.replace(/^https?:\/\//i, '');
-        const target = app.installDir || `C:\\APP\\${app.name}`;
+        const isStore = /^https?:\/\/(apps\.microsoft\.com|www\.microsoft\.com\/store)/i.test(app.downloadUrl);
+        const target = isStore ? '微软商店（winget）' : app.installDir || `C:\\APP\\${app.name}`;
 
         return `
         <article class="app-card glass${app.enabled ? '' : ' is-disabled'}" style="animation-delay:${Math.min(index * 30, 240)}ms">

@@ -4,7 +4,7 @@ export interface Env {
   ASSETS: Fetcher;
 }
 
-type InstallerType = 'auto' | 'msi' | 'exe' | 'ps1' | 'msix' | 'zip' | 'none';
+type InstallerType = 'auto' | 'msi' | 'exe' | 'ps1' | 'msix' | 'zip' | 'msstore' | 'none';
 
 interface AppRow {
   id: number;
@@ -22,7 +22,7 @@ interface AppRow {
   updated_at: string;
 }
 
-const INSTALLER_TYPES: InstallerType[] = ['auto', 'msi', 'exe', 'ps1', 'msix', 'zip', 'none'];
+const INSTALLER_TYPES: InstallerType[] = ['auto', 'msi', 'exe', 'ps1', 'msix', 'zip', 'msstore', 'none'];
 const MAX_BODY_BYTES = 32 * 1024;
 
 const CORS_HEADERS: Record<string, string> = {

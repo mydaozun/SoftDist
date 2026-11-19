@@ -9,6 +9,7 @@
     exe: 'EXE',
     ps1: '脚本',
     msix: 'MSIX',
+    msstore: '微软商店',
     zip: '压缩包',
     none: '仅下载',
   };
@@ -52,19 +53,57 @@
     return `powershell -ExecutionPolicy Bypass -Command "${invoke} -App ${list}"`;
   }
 
+  const isStoreApp = (app) => /^https?:\/\/(apps\.microsoft\.com|www\.microsoft\.com\/store)/i.test(app.downloadUrl || '');
+
+  function storeProductId(app) {
+    const match = String(app.downloadUrl || '').match(/(?:detail|apps)\/([A-Z0-9]{12})(?:[/?#]|$)/i);
+    return match ? match[1].toUpperCase() : '';
+  }
+
+  /** 微软商店应用单独生成 winget 命令，与安装包软件的命令分开执行 */
+  function buildStoreCommand(storeApps) {
+    return storeApps
+      .map((app) => {
+        const id = storeProductId(app);
+        return id ? `winget install --id ${id} --source msstore --accept-package-agreements --accept-source-agreements --silent` : '';
+      })
+      .filter(Boolean)
+      .join('; ');
+  }
+
   function syncBar() {
-    const names = apps.filter((app) => picked.has(app.name)).map((app) => app.name);
-    $('user-command').textContent = buildCommand(names);
-    $('pick-title').textContent = names.length ? `已选 ${names.length} 个软件` : `未选择 · 将安装全部 ${apps.length} 个软件`;
-    $('pick-hint').textContent = names.length
-      ? '在目标 Windows 机器上以管理员身份执行下面的命令，只会安装勾选的软件。'
-      : '勾选需要的软件即可生成对应的安装命令；未勾选时命令会安装全部已启用软件。';
+    const selected = apps.filter((app) => picked.has(app.name));
+    const useAll = selected.length === 0;
+    const target = useAll ? apps : selected;
+    const storeApps = target.filter(isStoreApp);
+    const restApps = target.filter((app) => !isStoreApp(app));
+
+    $('cmd-rest').hidden = restApps.length === 0;
+    $('user-command').textContent = restApps.length ? buildCommand(restApps.map((app) => app.name)) : '';
+
+    $('cmd-store').hidden = storeApps.length === 0;
+    $('store-command').textContent = storeApps.length ? buildStoreCommand(storeApps) : '';
+
+    $('pick-title').textContent = useAll
+      ? `未选择 · 将安装全部 ${apps.length} 个软件`
+      : `已选 ${selected.length} 个软件`;
+
+    if (!storeApps.length) {
+      $('pick-hint').textContent = selected.length
+        ? '在目标 Windows 机器上以管理员身份执行下面的命令，只会安装勾选的软件。'
+        : '勾选需要的软件即可生成对应的安装命令；未勾选时命令会安装全部已启用软件。';
+      return;
+    }
+    $('pick-hint').textContent = restApps.length
+      ? '安装包软件与微软商店应用分成两条命令，请分别以管理员身份执行。'
+      : '微软商店应用通过 winget 安装，需要目标机器带有 winget（App Installer）。';
   }
 
   function cardHtml(app, index) {
+    const isStore = /^https?:\/\/(apps\.microsoft\.com|www\.microsoft\.com\/store)/i.test(app.downloadUrl);
     const meta = [
       ['类型', INSTALLER_LABEL[app.installerType] || app.installerType],
-      ['目录', app.installDir || `C:\\APP\\${app.name}`],
+      ['目录', isStore ? '微软商店（winget）' : app.installDir || `C:\\APP\\${app.name}`],
     ]
       .map(([label, value]) => `<div class="meta-row"><b>${label}</b><span>${escapeHtml(value)}</span></div>`)
       .join('');
@@ -215,6 +254,15 @@
     const text = $('user-command').textContent;
     if (await copyText(text)) {
       toast('命令已复制');
+    } else {
+      toast('复制失败，请手动选择文本', true);
+    }
+  });
+
+  $('copy-store-btn').addEventListener('click', async () => {
+    const text = $('store-command').textContent;
+    if (await copyText(text)) {
+      toast('商店安装命令已复制');
     } else {
       toast('复制失败，请手动选择文本', true);
     }

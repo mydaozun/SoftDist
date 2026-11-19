@@ -69,7 +69,8 @@ npm run dev                      # http://127.0.0.1:8787
    - **软件名称**：必须与「控制面板 → 程序和功能」里的显示名一致（或为其前缀），客户端靠它判断是否已安装。
    - **分类**：可选（≤40 字符），管理台与用户页会据此显示筛选按钮，用户页按分类分组展示。
    - **下载链接**：`https://…`、`\\fileserver\share\app.exe` 或 `C:\pkg\app.exe`。
-   - **安装类型**：`msi` / `exe` / `ps1` / `msix` / `zip` / `none` / `auto`（按扩展名推断）。
+   - **安装类型**：`msi` / `exe` / `ps1` / `msix` / `msstore` / `zip` / `none` / `auto`（按扩展名推断；商店链接自动按 `msstore` 处理）。
+   - **微软商店应用**：下载链接填 `https://apps.microsoft.com/detail/<产品ID>`，客户端会调用 `winget install --id <产品ID> --source msstore` 安装，不需要填静默参数；目标机器需自带 winget（Win11 及 Win10 21H2+ 默认有）。
    - **静默参数**：可留空。客户端会识别安装包类型并套用默认值（NSIS `/S`、Inno Setup `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`、InstallShield `/s`、WiX `/quiet`、Squirrel `--silent`，识别不出按 NSIS 处理）；也可手填覆盖。
    - **安装目录**：留空则安装到 `C:\APP\<软件名>`；也可填 `D:\Tools\Foo` 等绝对路径。
    - **SHA256**：可选，填了客户端就会校验，防止下载被篡改。
@@ -129,6 +130,7 @@ powershell -ExecutionPolicy Bypass -File C:\SoftDist\Install-Agent.ps1 -Server "
 | exe | `<包> <静默参数> /D=<安装目录>` |
 | ps1 | `powershell -NoProfile -ExecutionPolicy Bypass -File <包> <静默参数>` |
 | msix | `Add-AppxPackage -Path <包>` |
+| msstore | `winget install --id <产品ID> --source msstore --accept-package-agreements --accept-source-agreements --silent` |
 | zip | 解压到 `<安装目录>`，不执行安装 |
 | none | 只下载不安装 |
 

@@ -54,9 +54,19 @@
       <h2 id="pick-title">加载中…</h2>
       <p id="pick-hint">勾选需要的软件即可生成对应的安装命令；未勾选时命令会安装全部已启用软件。</p>
     </div>
-    <div class="client-cmd">
-      <code id="user-command">powershell -ExecutionPolicy Bypass -Command "iwr '…/Install-Agent.ps1' -OutFile C:\Windows\Temp\Install-Agent.ps1 -UseBasicParsing; & C:\Windows\Temp\Install-Agent.ps1 -Server '…'"</code>
-      <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
+    <div id="cmd-rest" class="cmd-block">
+      <span class="cmd-label">安装包软件</span>
+      <div class="client-cmd">
+        <code id="user-command">powershell -ExecutionPolicy Bypass -Command "iwr '…/Install-Agent.ps1' -OutFile C:\Windows\Temp\Install-Agent.ps1 -UseBasicParsing; & C:\Windows\Temp\Install-Agent.ps1 -Server '…'"</code>
+        <button id="copy-btn" class="btn btn-ghost" type="button">复制</button>
+      </div>
+    </div>
+    <div id="cmd-store" class="cmd-block" hidden>
+      <span class="cmd-label">微软商店应用（需要 winget）</span>
+      <div class="client-cmd">
+        <code id="store-command">winget install --id … --source msstore --silent</code>
+        <button id="copy-store-btn" class="btn btn-ghost" type="button">复制</button>
+      </div>
     </div>
   </section>
 </main>

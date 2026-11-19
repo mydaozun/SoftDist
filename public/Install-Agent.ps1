@@ -346,6 +346,49 @@ function Get-ExeInstallerKind {
     return 'unknown'
 }
 
+# 识别微软商店产品页链接，返回产品 ID（如 9NBLGGH516XP）；普通下载链接返回 $null
+function Get-MsStoreProductId {
+    param([string]$Url)
+
+    if ([string]::IsNullOrWhiteSpace($Url)) { return $null }
+
+    $uri = $null
+    if (-not [System.Uri]::TryCreate($Url, [System.UriKind]::Absolute, [ref]$uri)) { return $null }
+
+    $hostName = $uri.Host.ToLowerInvariant()
+    if ($hostName -ne 'apps.microsoft.com' -and $hostName -ne 'www.microsoft.com') { return $null }
+    if ($hostName -eq 'www.microsoft.com' -and $uri.AbsolutePath -notmatch '(?i)^/store/') { return $null }
+
+    # 形如 /detail/9NBLGGH516XP 或 /store/apps/9NBLGGH516XP
+    if ($uri.AbsolutePath -match '(?i)/(?:detail|apps)/([A-Z0-9]{12})(?:/|$)') {
+        return $Matches[1].ToUpperInvariant()
+    }
+    return $null
+}
+
+# 通过 winget 的 msstore 源安装微软商店应用
+function Install-MsStoreApp {
+    param(
+        [string]$ProductId
+    )
+
+    $winget = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $winget) {
+        throw "本机没有 winget（应用安装程序），无法安装微软商店应用。请先在微软商店安装「应用安装程序」后重试。"
+    }
+
+    $arguments = @(
+        'install', '--id', $ProductId, '--source', 'msstore',
+        '--accept-package-agreements', '--accept-source-agreements',
+        '--silent', '--disable-interactivity'
+    )
+    Write-Log "执行：winget $($arguments -join ' ')"
+    $process = Start-Process -FilePath $winget.Source -ArgumentList $arguments -Wait -PassThru -NoNewWindow
+
+    if ($process.ExitCode -eq 0) { return 0 }
+    throw "winget 返回失败退出码 $($process.ExitCode)（可能是未登录微软账号、应用已下架或 winget 源未初始化）"
+}
+
 function Invoke-Installer {
     param(
         [string]$FilePath,
@@ -500,6 +543,24 @@ function Invoke-Main {
             }
 
             $action = if ($installed) { '升级' } else { '安装' }
+
+            # 微软商店链接：不下载安装包，交给 winget 的 msstore 源处理
+            $storeId = Get-MsStoreProductId -Url ([string]$item.downloadUrl)
+            if (-not $storeId -and [string]$item.installerType -eq 'msstore') {
+                throw "安装类型为微软商店，但下载链接不是 apps.microsoft.com 的产品页地址"
+            }
+            if ($storeId) {
+                if ($DryRun) {
+                    Write-Log "[DryRun] 需要$action 微软商店应用（产品 ID：$storeId）" 'WARN'
+                    $skipCount++
+                    continue
+                }
+                Install-MsStoreApp -ProductId $storeId
+                Write-Log "$name $action 成功（微软商店）" 'OK'
+                $okCount++
+                continue
+            }
+
             if ($DryRun) {
                 Write-Log "[DryRun] 需要$action 到版本 $($item.version)，目标目录 $installDir" 'WARN'
                 $skipCount++
